@@ -1,10 +1,13 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 
@@ -14,8 +17,8 @@ import (
 func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		return &schema.Provider{
-			ConfigureFunc:  providerConfigure,
-			DataSourcesMap: map[string]*schema.Resource{},
+			ConfigureContextFunc: providerConfigure,
+			DataSourcesMap:       map[string]*schema.Resource{},
 			ResourcesMap: map[string]*schema.Resource{
 				"chef_data_bag":      resourceChefDataBag(),
 				"chef_data_bag_item": resourceChefDataBagItem(),
@@ -58,7 +61,7 @@ func New(version string) func() *schema.Provider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	config := &chefc.Config{
 		Name:    d.Get("client_name").(string),
 		BaseURL: d.Get("server_url").(string),
@@ -74,7 +77,18 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.Key = v.(string)
 	}
 
-	return chefc.NewClient(config)
+	client, err := chefc.NewClient(config)
+	if err != nil {
+		return nil, diag.Diagnostics{
+			{
+				Severity:      diag.Error,
+				Summary:       "Error creating Chef Client",
+				Detail:        fmt.Sprint(err),
+				AttributePath: cty.GetAttrPath("client_name"),
+			},
+		}
+	}
+	return client, nil
 }
 
 func providerPrivateKeyEnvDefault() (interface{}, error) {
