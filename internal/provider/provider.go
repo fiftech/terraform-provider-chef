@@ -1,13 +1,12 @@
 package provider
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 
 	chefc "github.com/go-chef/chef"
 )
@@ -80,7 +79,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 func providerPrivateKeyEnvDefault() (interface{}, error) {
 	if fn := os.Getenv("CHEF_PRIVATE_KEY_FILE"); fn != "" {
-		contents, err := ioutil.ReadFile(fn)
+		contents, err := os.ReadFile(fn)
 		if err != nil {
 			return nil, err
 		}
@@ -93,18 +92,12 @@ func providerPrivateKeyEnvDefault() (interface{}, error) {
 func jsonStateFunc(value interface{}) string {
 	// Parse and re-stringify the JSON to make sure it's always kept
 	// in a normalized form.
-	in, ok := value.(string)
-	if !ok {
+	jsonValue, err := structure.NormalizeJsonString(value)
+	if err != nil {
 		return "null"
 	}
-	var tmp map[string]interface{}
 
-	// Assuming the value must be valid JSON since it passed okay through
-	// our prepareDataBagItemContent function earlier.
-	json.Unmarshal([]byte(in), &tmp)
-
-	jsonValue, _ := json.Marshal(&tmp)
-	return string(jsonValue)
+	return jsonValue
 }
 
 func runListEntryStateFunc(value interface{}) string {
