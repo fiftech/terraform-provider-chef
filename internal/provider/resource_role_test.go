@@ -33,8 +33,8 @@ func TestAccRole_basic(t *testing.T) {
 						}
 
 						expectedRunListStrings := []string{
-							"recipe[terraform@1.0.0]",
-							"recipe[consul]",
+							// "recipe[terraform@1.0.0]",
+							// "recipe[consul]",
 							"role[foo]",
 						}
 						expectedRunList := chefc.RunList(expectedRunListStrings)
@@ -42,8 +42,7 @@ func TestAccRole_basic(t *testing.T) {
 							return fmt.Errorf("wrong runlist; expected %#v, got %#v", expectedRunList, role.RunList)
 						}
 
-						var expectedAttributes interface{}
-						expectedAttributes = map[string]interface{}{
+						expectedAttributes := map[string]interface{}{
 							"terraform_acc_test": true,
 						}
 						if !reflect.DeepEqual(role.DefaultAttributes, expectedAttributes) {
@@ -116,6 +115,6 @@ EOT
      "terraform_acc_test": true
 }
 EOT
-  run_list = ["terraform@1.0.0", "recipe[consul]", "role[foo]"]
+  // run_list = ["terraform@1.0.0", "recipe[consul]", "role[foo]"]
 }
 `

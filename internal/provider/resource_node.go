@@ -121,25 +121,25 @@ func ReadNode(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("automatic_attributes_json", automaticAttrJson)
+	d.Set("automatic_attributes_json", string(automaticAttrJson))
 
 	normalAttrJson, err := json.Marshal(node.NormalAttributes)
 	if err != nil {
 		return err
 	}
-	d.Set("normal_attributes_json", normalAttrJson)
+	d.Set("normal_attributes_json", string(normalAttrJson))
 
 	defaultAttrJson, err := json.Marshal(node.DefaultAttributes)
 	if err != nil {
 		return err
 	}
-	d.Set("default_attributes_json", defaultAttrJson)
+	d.Set("default_attributes_json", string(defaultAttrJson))
 
 	overrideAttrJson, err := json.Marshal(node.OverrideAttributes)
 	if err != nil {
 		return err
 	}
-	d.Set("override_attributes_json", overrideAttrJson)
+	d.Set("override_attributes_json", string(overrideAttrJson))
 
 	runListI := make([]interface{}, len(node.RunList))
 	for i, v := range node.RunList {

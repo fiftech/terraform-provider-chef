@@ -46,7 +46,7 @@ func CreateDataBagItem(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(itemId)
-	d.Set("id", itemId)
+
 	return nil
 }
 
@@ -91,7 +91,6 @@ func DeleteDataBagItem(d *schema.ResourceData, meta interface{}) error {
 	err := client.DataBags.DeleteItem(dataBagName, itemId)
 	if err == nil {
 		d.SetId("")
-		d.Set("id", "")
 	}
 	return err
 }

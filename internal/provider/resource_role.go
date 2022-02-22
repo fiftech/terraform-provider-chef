@@ -109,13 +109,13 @@ func ReadRole(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("default_attributes_json", defaultAttrJson)
+	d.Set("default_attributes_json", string(defaultAttrJson))
 
 	overrideAttrJson, err := json.Marshal(role.OverrideAttributes)
 	if err != nil {
 		return err
 	}
-	d.Set("override_attributes_json", overrideAttrJson)
+	d.Set("override_attributes_json", string(overrideAttrJson))
 
 	runListI := make([]interface{}, len(role.RunList))
 	for i, v := range role.RunList {
@@ -131,22 +131,7 @@ func DeleteRole(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Id()
 
-	// For some reason Roles.Delete is not exposed by the
-	// underlying client library, so we have to do this manually.
-
-	path := fmt.Sprintf("roles/%s", name)
-
-	httpReq, err := client.NewRequest("DELETE", path, nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Do(httpReq, nil)
-	if err == nil {
-		d.SetId("")
-	}
-
-	return err
+	return client.Roles.Delete(name)
 }
 
 func roleFromResourceData(d *schema.ResourceData) (*chefc.Role, error) {
@@ -157,9 +142,7 @@ func roleFromResourceData(d *schema.ResourceData) (*chefc.Role, error) {
 		ChefType:    "role",
 	}
 
-	var err error
-
-	err = json.Unmarshal(
+	err := json.Unmarshal(
 		[]byte(d.Get("default_attributes_json").(string)),
 		&role.DefaultAttributes,
 	)

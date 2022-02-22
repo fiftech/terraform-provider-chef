@@ -108,13 +108,13 @@ func ReadEnvironment(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("default_attributes_json", defaultAttrJson)
+	d.Set("default_attributes_json", string(defaultAttrJson))
 
 	overrideAttrJson, err := json.Marshal(env.OverrideAttributes)
 	if err != nil {
 		return err
 	}
-	d.Set("override_attributes_json", overrideAttrJson)
+	d.Set("override_attributes_json", string(overrideAttrJson))
 
 	cookbookVersionsI := map[string]interface{}{}
 	for k, v := range env.CookbookVersions {
