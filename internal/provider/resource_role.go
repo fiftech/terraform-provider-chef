@@ -1,9 +1,12 @@
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	chefc "github.com/go-chef/chef"
@@ -11,10 +14,10 @@ import (
 
 func resourceChefRole() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateRole,
-		Update: UpdateRole,
-		Read:   ReadRole,
-		Delete: DeleteRole,
+		CreateContext: CreateRole,
+		Update:        UpdateRole,
+		Read:          ReadRole,
+		Delete:        DeleteRole,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -51,21 +54,45 @@ func resourceChefRole() *schema.Resource {
 	}
 }
 
-func CreateRole(d *schema.ResourceData, meta interface{}) error {
+func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*chefc.Client)
 
 	role, err := roleFromResourceData(d)
 	if err != nil {
-		return err
+		return diag.Diagnostics{
+			{
+				Severity:      diag.Error,
+				Summary:       "Error reading Chef Role from Resource Data",
+				Detail:        fmt.Sprint(err),
+				AttributePath: cty.GetAttrPath("name"),
+			},
+		}
 	}
 
 	_, err = client.Roles.Create(role)
 	if err != nil {
-		return err
+		return diag.Diagnostics{
+			{
+				Severity:      diag.Error,
+				Summary:       "Error creating Chef Role",
+				Detail:        fmt.Sprint(err),
+				AttributePath: cty.GetAttrPath("name"),
+			},
+		}
 	}
 
 	d.SetId(role.Name)
-	return ReadRole(d, meta)
+	if err = ReadRole(d, meta); err != nil {
+		return diag.Diagnostics{
+			{
+				Severity:      diag.Error,
+				Summary:       "Error reading Chef Role",
+				Detail:        fmt.Sprint(err),
+				AttributePath: cty.GetAttrPath("name"),
+			},
+		}
+	}
+	return nil
 }
 
 func UpdateRole(d *schema.ResourceData, meta interface{}) error {
@@ -117,11 +144,12 @@ func ReadRole(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("override_attributes_json", string(overrideAttrJson))
 
-	runListI := make([]interface{}, len(role.RunList))
-	for i, v := range role.RunList {
-		runListI[i] = v
+	runList := make([]string, len(role.RunList))
+	for idx, item := range role.RunList {
+		runList[idx] = item
 	}
-	d.Set("run_list", runListI)
+
+	d.Set("run_list", runList)
 
 	return nil
 }

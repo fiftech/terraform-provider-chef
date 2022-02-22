@@ -44,12 +44,12 @@ func New(version string) func() *schema.Provider {
 					Optional:    true,
 					DefaultFunc: providerPrivateKeyEnvDefault,
 					Deprecated:  "Please use key_material instead",
-					Description: "PEM-formatted private key for client authentication.",
 				},
 				"key_material": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("CHEF_KEY_MATERIAL", ""),
+					Description: "PEM-formatted private key for client authentication.",
 				},
 				"allow_unverified_ssl": {
 					Type:        schema.TypeBool,
