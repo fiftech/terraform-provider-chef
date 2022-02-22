@@ -16,7 +16,10 @@ type Node struct {
 	DefaultAttributes   map[string]interface{} `json:"default,omitempty"`
 	OverrideAttributes  map[string]interface{} `json:"override,omitempty"`
 	JsonClass           string                 `json:"json_class,omitempty"`
-	RunList             []string               `json:"run_list,omitempty"`
+	//TODO: use the RunList struct for this
+	RunList     []string `json:"run_list,omitempty"`
+	PolicyName  string   `json:"policy_name,omitempty"`
+	PolicyGroup string   `json:"policy_group,omitempty"`
 }
 
 type NodeResult struct {
@@ -36,7 +39,7 @@ func NewNode(name string) (node Node) {
 
 // List lists the nodes in the Chef server.
 //
-// Chef API docs: http://docs.opscode.com/api_chef_server.html#id25
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes
 func (e *NodeService) List() (data map[string]string, err error) {
 	err = e.client.magicRequestDecoder("GET", "nodes", nil, &data)
 	return
@@ -44,16 +47,25 @@ func (e *NodeService) List() (data map[string]string, err error) {
 
 // Get gets a node from the Chef server.
 //
-// Chef API docs: http://docs.opscode.com/api_chef_server.html#id28
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes-name
 func (e *NodeService) Get(name string) (node Node, err error) {
 	url := fmt.Sprintf("nodes/%s", name)
 	err = e.client.magicRequestDecoder("GET", url, nil, &node)
 	return
 }
 
+// Head gets a node from the Chef server. Does not return a json body.
+//
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes-name
+func (e *NodeService) Head(name string) (err error) {
+	url := fmt.Sprintf("nodes/%s", name)
+	err = e.client.magicRequestDecoder("HEAD", url, nil, nil)
+	return
+}
+
 // Post creates a Node on the chef server
 //
-// Chef API docs: https://docs.getchef.com/api_chef_server.html#id39
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes
 func (e *NodeService) Post(node Node) (data *NodeResult, err error) {
 	body, err := JSONReader(node)
 	if err != nil {
@@ -66,7 +78,8 @@ func (e *NodeService) Post(node Node) (data *NodeResult, err error) {
 
 // Put updates a node on the Chef server.
 //
-// Chef API docs: http://docs.getchef.com/api_chef_server.html#id42
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes-name
+// TODO: We might want to change the name. name and data should be separate structures
 func (e *NodeService) Put(n Node) (node Node, err error) {
 	url := fmt.Sprintf("nodes/%s", n.Name)
 	body, err := JSONReader(n)
@@ -80,7 +93,7 @@ func (e *NodeService) Put(n Node) (node Node, err error) {
 
 // Delete removes a node on the Chef server
 //
-// Chef API docs: https://docs.getchef.com/api_chef_server.html#id40
+// Chef API docs: https://docs.chef.io/api_chef_server.html#nodes-name
 func (e *NodeService) Delete(name string) (err error) {
 	err = e.client.magicRequestDecoder("DELETE", "nodes/"+name, nil, nil)
 	return
