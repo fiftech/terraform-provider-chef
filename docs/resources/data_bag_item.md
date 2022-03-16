@@ -17,11 +17,11 @@ description: |-
 
 ### Required
 
-- **content_json** (String)
-- **data_bag_name** (String)
+- `content_json` (String)
+- `data_bag_name` (String)
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

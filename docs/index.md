@@ -17,11 +17,11 @@ description: |-
 
 ### Required
 
-- **client_name** (String) Name of a registered client within the Chef server.
-- **server_url** (String) URL of the root of the target Chef server or organization.
+- `client_name` (String) Name of a registered client within the Chef server.
+- `server_url` (String) URL of the root of the target Chef server or organization.
 
 ### Optional
 
-- **allow_unverified_ssl** (Boolean) If set, the Chef client will permit unverifiable SSL certificates.
-- **key_material** (String)
-- **private_key_pem** (String, Deprecated) PEM-formatted private key for client authentication.
+- `allow_unverified_ssl` (Boolean) If set, the Chef client will permit unverifiable SSL certificates.
+- `key_material` (String) PEM-formatted private key for client authentication.
+- `private_key_pem` (String, Deprecated)

@@ -17,16 +17,16 @@ description: |-
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **automatic_attributes_json** (String)
-- **default_attributes_json** (String)
-- **environment_name** (String)
-- **id** (String) The ID of this resource.
-- **normal_attributes_json** (String)
-- **override_attributes_json** (String)
-- **run_list** (List of String)
+- `automatic_attributes_json` (String)
+- `default_attributes_json` (String)
+- `environment_name` (String)
+- `id` (String) The ID of this resource.
+- `normal_attributes_json` (String)
+- `override_attributes_json` (String)
+- `run_list` (List of String)
 
 

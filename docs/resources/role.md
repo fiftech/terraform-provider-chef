@@ -17,14 +17,14 @@ description: |-
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **default_attributes_json** (String)
-- **description** (String)
-- **id** (String) The ID of this resource.
-- **override_attributes_json** (String)
-- **run_list** (List of String)
+- `default_attributes_json` (String)
+- `description` (String)
+- `id` (String) The ID of this resource.
+- `override_attributes_json` (String)
+- `run_list` (List of String)
 
 

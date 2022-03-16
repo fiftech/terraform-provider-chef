@@ -17,14 +17,14 @@ description: |-
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ### Read-Only
 
-- **api_uri** (String)
+- `api_uri` (String)
 
 

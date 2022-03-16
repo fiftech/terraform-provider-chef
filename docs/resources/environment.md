@@ -17,14 +17,14 @@ description: |-
 
 ### Required
 
-- **name** (String)
+- `name` (String)
 
 ### Optional
 
-- **cookbook_constraints** (Map of String)
-- **default_attributes_json** (String)
-- **description** (String)
-- **id** (String) The ID of this resource.
-- **override_attributes_json** (String)
+- `cookbook_constraints` (Map of String)
+- `default_attributes_json` (String)
+- `description` (String)
+- `id` (String) The ID of this resource.
+- `override_attributes_json` (String)
 
 
