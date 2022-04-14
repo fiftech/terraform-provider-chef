@@ -3,6 +3,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -14,6 +15,9 @@ func resourceChefDataBagItem() *schema.Resource {
 		Create: CreateDataBagItem,
 		Read:   ReadDataBagItem,
 		Delete: DeleteDataBagItem,
+		Importer: &schema.ResourceImporter{
+			State: DataBagItemImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"data_bag_name": {
@@ -112,4 +116,20 @@ func prepareDataBagItemContent(contentJson string) (string, interface{}, error) 
 	}
 
 	return itemId, value, nil
+}
+
+func DataBagItemImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	id := d.Id()
+	parts := strings.Split(id, "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("unexpected format of ID (%s), expected databag_name/item_name", id)
+	}
+
+	d.SetId(parts[1])
+	d.Set("data_bag_name", parts[0])
+	if err := ReadDataBagItem(d, meta); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
