@@ -3,6 +3,7 @@ package chef
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -40,6 +41,12 @@ type SearchResult struct {
 	Rows  []interface{}
 }
 
+var inc = 1000
+
+func (e SearchService) PageSize(setting int) {
+	inc = setting
+}
+
 // Do will execute the search query on the client
 func (q SearchQuery) Do(client *Client) (res SearchResult, err error) {
 	fullUrl := fmt.Sprintf("search/%s", q)
@@ -47,13 +54,13 @@ func (q SearchQuery) Do(client *Client) (res SearchResult, err error) {
 	return
 }
 
-// DoPartial will execute the search query on the client with partal mapping
+// DoPartial will execute the search query on the client with partial mapping
 func (q SearchQuery) DoPartial(client *Client, params map[string]interface{}) (res SearchResult, err error) {
 	fullUrl := fmt.Sprintf("search/%s", q)
 
 	body, err := JSONReader(params)
 	if err != nil {
-		debug("Problem encoding params for body", err.Error())
+		debug("Problem encoding params for body %v", err.Error())
 		return
 	}
 
@@ -75,16 +82,16 @@ func (e SearchService) NewQuery(idx, statement string) (query SearchQuery, err e
 		// These are the defaults in chef: https://github.com/opscode/chef/blob/master/lib/chef/search/query.rb#L102-L105
 		SortBy: "X_CHEF_id_CHEF_X asc",
 		Start:  0,
-		Rows:   1000,
+		Rows:   inc,
 	}
 
 	return
 }
 
-// Exec runs the query on the index passed in. This is a helper method. If you want more controll over the query  use NewQuery and its Do() method.
-// BUG(spheromak): Should we use exec or SearchQuery.Do() or have both ?
+// Exec runs the query on the index passed in. This is a helper method. If you want more control over the query  use NewQuery and its Do() method.
+// BUG(spheromak): Should we use Exec or SearchQuery.Do() or have both ?
 func (e SearchService) Exec(idx, statement string) (res SearchResult, err error) {
-	//  Copy-paste here till We decide which way to go with exec vs Do
+	//  Copy-paste here till We decide which way to go with Exec vs Do
 	if !strings.Contains(statement, ":") {
 		err = errors.New("statement is malformed")
 		return
@@ -96,16 +103,18 @@ func (e SearchService) Exec(idx, statement string) (res SearchResult, err error)
 		// These are the defaults in chef: https://github.com/opscode/chef/blob/master/lib/chef/search/query.rb#L102-L105
 		SortBy: "X_CHEF_id_CHEF_X asc",
 		Start:  0,
-		Rows:   1000,
+		Rows:   inc,
 	}
 
 	res, err = query.Do(e.client)
+	if err != nil {
+		return
+	}
 	start := res.Start
-	inc := 1000
 	total := res.Total
 
-	for start + inc <= total {
-		query.Start = query.Start + 1000
+	for start+inc <= total {
+		query.Start = query.Start + inc
 		start = query.Start
 		ares, err := query.Do(e.client)
 		if err != nil {
@@ -122,26 +131,50 @@ func (e SearchService) PartialExec(idx, statement string, params map[string]inte
 		Index: idx,
 		Query: statement,
 		// These are the defaults in chef: https://github.com/opscode/chef/blob/master/lib/chef/search/query.rb#L102-L105
+		// SortBy: "X_CHEF_id_CHEF_X asc",
 		SortBy: "X_CHEF_id_CHEF_X asc",
 		Start:  0,
-		Rows:   1000,
+		Rows:   inc,
 	}
 
 	fullUrl := fmt.Sprintf("search/%s", query)
-
-	body, err := JSONReader(params)
+	body, err := JSONSeeker(params)
 	if err != nil {
 		debug("Problem encoding params for body")
 		return
 	}
 
 	err = e.client.magicRequestDecoder("POST", fullUrl, body, &res)
+	if err != nil {
+		return
+	}
+
+	start := res.Start
+	// the total rows available for this query across all pages
+	total := res.Total
+	paged_res := SearchResult{}
+
+	for start+inc <= total {
+		query.Start = query.Start + inc
+		start = query.Start
+		body.Seek(0, io.SeekStart)
+		if err != nil {
+			fmt.Printf("Seek error %+v\n", err)
+			return
+		}
+		fullUrl := fmt.Sprintf("search/%s", query)
+		err = e.client.magicRequestDecoder("POST", fullUrl, body, &paged_res)
+		if err != nil {
+			fmt.Printf("Partial search error %+v\n", err)
+			return
+		}
+		// add this page of results to the primary SearchResult instance
+		res.Rows = append(res.Rows, paged_res.Rows...)
+	}
 	return
 }
 
-// List lists the nodes in the Chef server.
-//
-// Chef API docs: http://docs.opscode.com/api_chef_server.html#id25
+// Chef API docs: https://docs.chef.io/api_chef_server/#get-46
 func (e SearchService) Indexes() (data map[string]string, err error) {
 	err = e.client.magicRequestDecoder("GET", "search", nil, &data)
 	return

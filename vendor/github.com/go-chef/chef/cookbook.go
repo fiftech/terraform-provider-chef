@@ -38,7 +38,7 @@ type CookbookVersion struct {
 
 // CookbookMeta represents a Golang version of cookbook metadata
 type CookbookMeta struct {
-	Name            string                 `json:"cookbook_name,omitempty"`
+	Name            string                 `json:"name,omitempty"`
 	Version         string                 `json:"version,omitempty"`
 	Description     string                 `json:"description,omitempty"`
 	LongDescription string                 `json:"long_description,omitempty"`
@@ -57,6 +57,15 @@ type CookbookMeta struct {
 	Recipes         map[string]string      `json:"recipes,omitempty"`
 }
 
+// CookbookAccess represents the permissions on a Cookbook
+type CookbookAccess struct {
+	Read   bool `json:"read,omitempty"`
+	Create bool `json:"create,omitempty"`
+	Grant  bool `json:"grant,omitempty"`
+	Update bool `json:"update,omitempty"`
+	Delete bool `json:"delete,omitempty"`
+}
+
 // Cookbook represents the native Go version of the deserialized api cookbook
 type Cookbook struct {
 	CookbookName string         `json:"cookbook_name"`
@@ -73,8 +82,9 @@ type Cookbook struct {
 	Libraries    []CookbookItem `json:"libraries,omitempty"`
 	Providers    []CookbookItem `json:"providers,omitempty"`
 	Resources    []CookbookItem `json:"resources,omitempty"`
-	RootFiles    []CookbookItem `json:"templates,omitempty"`
+	RootFiles    []CookbookItem `json:"root_files,omitempty"`
 	Metadata     CookbookMeta   `json:"metadata,omitempty"`
+	Access       CookbookAccess `json:"access,omitempty"`
 }
 
 // String makes CookbookListResult implement the string result
@@ -120,15 +130,15 @@ func (c *CookbookService) GetAvailableVersions(name, numVersions string) (data C
 // GetVersion fetches a specific version of a cookbooks data from the server api
 //   GET /cookbook/foo/1.2.3
 //   GET /cookbook/foo/_latest
-//   Chef API docs: http://docs.opscode.com/api_chef_server.html#id5
+//   Chef API docs: https://docs.chef.io/api_chef_server.html#cookbooks-name-version
 func (c *CookbookService) GetVersion(name, version string) (data Cookbook, err error) {
 	url := fmt.Sprintf("cookbooks/%s/%s", name, version)
-	c.client.magicRequestDecoder("GET", url, nil, &data)
+	err = c.client.magicRequestDecoder("GET", url, nil, &data)
 	return
 }
 
 // ListVersions lists the cookbooks available on the server limited to numVersions
-//   Chef API docs: http://docs.opscode.com/api_chef_server.html#id2
+//   Chef API docs: https://docs.chef.io/api_chef_server.html#cookbooks-name
 func (c *CookbookService) ListAvailableVersions(numVersions string) (data CookbookListResult, err error) {
 	path := versionParams("cookbooks", numVersions)
 	err = c.client.magicRequestDecoder("GET", path, nil, &data)
@@ -136,7 +146,7 @@ func (c *CookbookService) ListAvailableVersions(numVersions string) (data Cookbo
 }
 
 // ListAllRecipes lists the names of all recipes in the most recent cookbook versions
-//   Chef API docs: https://docs.chef.io/api_chef_server.html#id31
+//   Chef API docs: https://docs.chef.io/api_chef_server.html#cookbooks-recipes
 func (c *CookbookService) ListAllRecipes() (data CookbookRecipesResult, err error) {
 	path := "cookbooks/_recipes"
 	err = c.client.magicRequestDecoder("GET", path, nil, &data)
