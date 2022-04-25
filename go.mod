@@ -1,4 +1,4 @@
-module github.com/bdwyertech/terraform-provider-chef
+module github.com/fiftech/terraform-provider-chef
 
 go 1.16
 
