@@ -19,6 +19,14 @@ test: fmtcheck ## run the test suite
 testacc: fmtcheck ## run testacc suite
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+chef-zero:
+	@echo "Running chef-zero docker..."
+	docker run -d -p 8889:8889 --name docker-chef-zero osuosl/chef-zero
+
+clean-chef-zero:
+	@echo "Cleaning chef-zero docker..."
+	docker stop docker-chef-zero && docker rm docker-chef-zero
+
 vet: ## running go vet
 	@echo "go vet ."
 	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
