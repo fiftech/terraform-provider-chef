@@ -19,6 +19,23 @@ test: fmtcheck ## run the test suite
 testacc: fmtcheck ## run testacc suite
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+chef-zero:
+	@echo "Running chef-zero docker..."
+	@echo "Copy & Paste to export the following variables:"
+	@docker run -d -p 8889:8889 --name docker-chef-zero osuosl/chef-zero > /dev/null
+	@echo "export CHEF_SERVER_URL=http://127.0.0.1:8889"
+	@echo "export CHEF_CLIENT_NAME=chef-zero"
+	@echo "export CHEF_KEY_MATERIAL=$$""(cat ./dummy-private-key.pem)"
+
+clean-chef-zero:
+	@echo "Cleaning chef-zero docker..."
+	@docker stop docker-chef-zero > /dev/null
+	@docker rm docker-chef-zero > /dev/null
+	@echo "Copy & Paste to unset the following variables:"
+	@echo "unset CHEF_SERVER_URL"
+	@echo "unset CHEF_CLIENT_NAME"
+	@echo "unset CHEF_KEY_MATERIAL"
+
 vet: ## running go vet
 	@echo "go vet ."
 	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \

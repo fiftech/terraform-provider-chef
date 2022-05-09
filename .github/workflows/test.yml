@@ -79,9 +79,15 @@ jobs:
         env:
           GOFLAGS: '-mod=vendor'
           TF_ACC: '1'
-          CHEF_SERVER_URL: ${{ secrets.CHEF_SERVER_URL }}
-          CHEF_CLIENT_NAME: ${{ secrets.CHEF_CLIENT_NAME }}
+          CHEF_SERVER_URL: http://127.0.0.1:8889
+          CHEF_CLIENT_NAME: chef-zero
           CHEF_KEY_MATERIAL: ${{ secrets.CHEF_KEY_MATERIAL }}
 
         run: |
           go test -v -cover ./internal/provider/
+
+    services:
+      chef-zero:
+        image: osuosl/chef-zero
+        ports:
+          - 8889:8889
