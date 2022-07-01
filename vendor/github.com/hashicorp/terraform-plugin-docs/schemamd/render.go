@@ -70,10 +70,6 @@ func writeAttribute(w io.Writer, path []string, att *tfjson.SchemaAttribute, gro
 		return nil, err
 	}
 
-	if name == "id" && att.Description == "" {
-		att.Description = "The ID of this resource."
-	}
-
 	if att.AttributeNestedType == nil {
 		err = WriteAttributeDescription(w, att, false)
 	} else {
@@ -225,7 +221,18 @@ nameLoop:
 			}
 		} else if childAtt, ok := block.Attributes[n]; ok {
 			for i, gf := range groupFilters {
-				if gf.filterAttribute(childAtt) {
+				// By default, the attribute `id` is place in the "Read-Only" group
+				// if the provider schema contained no `.Description` for it.
+				//
+				// If a `.Description` is provided instead, the behaviour will be the
+				// same as for every other attribute.
+				if strings.ToLower(n) == "id" && childAtt.Description == "" {
+					if strings.Contains(gf.topLevelTitle, "Read-Only") {
+						childAtt.Description = "The ID of this resource."
+						groups[i] = append(groups[i], n)
+						continue nameLoop
+					}
+				} else if gf.filterAttribute(childAtt) {
 					groups[i] = append(groups[i], n)
 					continue nameLoop
 				}
@@ -286,7 +293,9 @@ nameLoop:
 		}
 
 		for _, name := range sortedNames {
-			path := append(parents, name)
+			path := make([]string, len(parents), len(parents)+1)
+			copy(path, parents)
+			path = append(path, name)
 
 			if childBlock, ok := block.NestedBlocks[name]; ok {
 				nt, err := writeBlockType(w, path, childBlock)
