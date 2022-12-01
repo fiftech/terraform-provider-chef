@@ -118,7 +118,7 @@ type ConfigureContextFunc func(context.Context, *ResourceData) (interface{}, dia
 // This should be called in a unit test for any provider to verify
 // before release that a provider is properly configured for use with
 // this library.
-func (p *Provider)  InternalValidate() error {
+func (p *Provider) InternalValidate() error {
 	if p == nil {
 		return errors.New("provider is nil")
 	}
@@ -266,7 +266,7 @@ func (p *Provider) Configure(ctx context.Context, c *terraform.ResourceConfig) d
 	}
 
 	if p.configured {
-		log.Printf("[WARN] Previously configured provider being re-configured. This can cause issues in concurrent testing if the configurations are not equal.")
+		logging.HelperSchemaWarn(ctx, "Previously configured provider being re-configured. This can cause issues in concurrent testing if the configurations are not equal.")
 	}
 
 	sm := schemaMap(p.Schema)
