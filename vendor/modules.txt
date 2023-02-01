@@ -16,7 +16,7 @@ github.com/bgentry/speakeasy
 github.com/davecgh/go-spew/spew
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
-# github.com/go-chef/chef v0.24.5
+# github.com/go-chef/chef v0.28.1
 ## explicit
 github.com/go-chef/chef
 # github.com/golang/protobuf v1.5.2

@@ -96,6 +96,9 @@ type Config struct {
 
 	// When set to true corresponding API is using webui key in the request
 	IsWebuiKey bool
+
+	// Proxy function to be used when making requests
+	Proxy func(*http.Request) (*url.URL, error)
 }
 
 /*
@@ -226,6 +229,10 @@ func NewClient(cfg *Config) (*Client, error) {
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 
+	if cfg.Proxy != nil {
+		tr.Proxy = cfg.Proxy
+	}
+
 	c := &Client{
 		Auth: &AuthConfig{
 			PrivateKey:            pk,
@@ -267,6 +274,28 @@ func NewClient(cfg *Config) (*Client, error) {
 	return c, nil
 }
 
+func NewClientWithOutConfig(baseurl string) (*Client, error) {
+	baseUrl, _ := url.Parse(baseurl)
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+
+	c := &Client{
+		client: &http.Client{
+			Transport: tr,
+			Timeout:   60 * time.Second,
+		},
+		BaseURL: baseUrl,
+	}
+
+	return c, nil
+}
 func (cfg *Config) VerifyVersion() (err error) {
 	if cfg.AuthenticationVersion != "1.3" {
 		cfg.AuthenticationVersion = "1.0"
@@ -360,6 +389,34 @@ func (c *Client) NewRequest(method string, requestUrl string, body io.Reader) (*
 	return req, nil
 }
 
+// NoAuthNewRequest returns a request  suitable for public apis
+func (c *Client) NoAuthNewRequest(method string, requestUrl string, body io.Reader) (*http.Request, error) {
+	relativeUrl, err := url.Parse(requestUrl)
+	if err != nil {
+		return nil, err
+	}
+	u := c.BaseURL.ResolveReference(relativeUrl)
+
+	// NewRequest uses a new value object of body
+	req, err := http.NewRequest(method, u.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	// parse and encode Querystring Values
+	values := req.URL.Query()
+	req.URL.RawQuery = values.Encode()
+	debug("Encoded url %+v\n", u)
+
+	myBody := &Body{body}
+
+	if body != nil {
+		// Detect Content-type
+		req.Header.Set("Content-Type", myBody.ContentType())
+	}
+	return req, nil
+}
+
 // basicAuth does base64 encoding of a user and password
 func basicAuth(user string, password string) string {
 	creds := user + ":" + password
@@ -442,12 +499,18 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	var resBuf bytes.Buffer
 	resTee := io.TeeReader(res.Body, &resBuf)
 
+	// add the body back to the response so
+	// subsequent calls to res.Body contain data
+	res.Body = ioutil.NopCloser(&resBuf)
+
 	// no response interface specified
 	if v == nil {
 		if debug_on() {
 			// show the response body as a string
 			resbody, _ := ioutil.ReadAll(resTee)
 			debug("Response body: %+v\n", string(resbody))
+		} else {
+			_, _ = ioutil.ReadAll(resTee)
 		}
 		debug("No response body requested\n")
 		return res, nil
@@ -467,12 +530,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 			// show the response body as a string
 			resbody, _ := ioutil.ReadAll(&resBuf)
 			debug("Response body: %+v\n", string(resbody))
+			var repBuffer bytes.Buffer
+			repBuffer.Write(resbody)
+			res.Body = ioutil.NopCloser(&repBuffer)
 		}
-		debug("Response body specifies content as JSON: %+v Err:\n", v, err)
-		if err != nil {
-			return res, err
-		}
-		return res, nil
+		debug("Response body specifies content as JSON: %+v Err: %+v\n", v, err)
+		return res, err
 	}
 
 	// response interface, v, is type string and the content is plain text
@@ -493,12 +556,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 		// show the response body as a string
 		resbody, _ := ioutil.ReadAll(&resBuf)
 		debug("Response body: %+v\n", string(resbody))
+		var repBuffer bytes.Buffer
+		repBuffer.Write(resbody)
+		res.Body = ioutil.NopCloser(&repBuffer)
 	}
-	debug("Response body defaulted to JSON parsing: %+v Err:\n", v, err)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
+	debug("Response body defaulted to JSON parsing: %+v Err: %+v\n", v, err)
+	return res, err
 }
 
 func hasJsonContentType(res *http.Response) bool {
@@ -620,4 +683,20 @@ func PrivateKeyFromString(key []byte) (*rsa.PrivateKey, error) {
 	}
 
 	return nil, errors.New("tls: failed to parse private key")
+}
+
+func (c *Client) MagicRequestResponseDecoderWithOutAuth(url, method string, body io.Reader, v interface{}) error {
+	req, err := c.NoAuthNewRequest(method, url, body)
+	if err != nil {
+		return err
+	}
+
+	res, err := c.Do(req, v)
+	if res != nil {
+		defer res.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+	return err
 }
