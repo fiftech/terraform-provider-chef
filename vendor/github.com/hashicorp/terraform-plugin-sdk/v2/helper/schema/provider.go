@@ -118,7 +118,7 @@ type ConfigureContextFunc func(context.Context, *ResourceData) (interface{}, dia
 // This should be called in a unit test for any provider to verify
 // before release that a provider is properly configured for use with
 // this library.
-func (p *Provider)  InternalValidate() error {
+func (p *Provider) InternalValidate() error {
 	if p == nil {
 		return errors.New("provider is nil")
 	}
