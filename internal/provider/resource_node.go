@@ -15,7 +15,44 @@ func resourceChefNode() *schema.Resource {
 		Update: UpdateNode,
 		Read:   ReadNode,
 		Delete: DeleteNode,
-
+                Importer: &schema.ResourceImporter{
+                        State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				client := meta.(*chefc.Client)
+				name := d.Id()
+				node, err := client.Nodes.Get(name)
+				if err != nil {
+					return nil, err
+				}
+				automaticAttrJson, err := json.Marshal(node.AutomaticAttributes)
+				if err != nil {
+					return nil, err
+				}
+				normalAttrJson, err := json.Marshal(node.NormalAttributes)
+				if err != nil {
+					return nil, err
+				}
+				defaultAttrJson, err := json.Marshal(node.DefaultAttributes)
+				if err != nil {
+					return nil, err
+				}
+				overrideAttrJson, err := json.Marshal(node.OverrideAttributes)
+				if err != nil {
+					return nil, err
+				}
+				runListI := make([]interface{}, len(node.RunList))
+				for i, v := range node.RunList {
+					runListI[i] = v
+				}
+				d.Set("name", node.Name)
+				d.Set("environment_name", node.Environment)
+				d.Set("automatic_attributes_json", string(automaticAttrJson))
+				d.Set("normal_attributes_json", string(normalAttrJson))
+				d.Set("default_attributes_json", string(defaultAttrJson))
+				d.Set("override_attributes_json", string(overrideAttrJson))
+				d.Set("run_list", runListI)
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -157,6 +194,8 @@ func DeleteNode(d *schema.ResourceData, meta interface{}) error {
 	err := client.Nodes.Delete(name)
 
 	if err == nil {
+		// Prevent errors when re-creating via TF as client keys are stale, ignore missing client keys
+		_ = client.Clients.Delete(name)
 		d.SetId("")
 	}
 
