@@ -25,6 +25,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
       - name: Import GPG key
+        id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
